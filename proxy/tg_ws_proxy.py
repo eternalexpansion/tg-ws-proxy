@@ -952,11 +952,11 @@ async def _handle_client(reader, writer, secret: bytes):
         
         tg_encryptor.update(ZERO_64)
 
-        dc_key = (dc, is_media)
+        dc_key = f'{dc}{"m" if is_media else ""}'
         media_tag = " media" if is_media else ""
 
         # Fallback if DC not in config or WS blacklisted for this DC/is_media
-        if dc not in proxy_config.dc_redirects or dc_key in ws_blacklist or dc == 2 and is_media:
+        if dc not in proxy_config.dc_redirects or dc_key in ws_blacklist:
             if dc not in proxy_config.dc_redirects:
                 log.info("[%s] DC%d not in config -> fallback",
                          label, dc)
@@ -1102,6 +1102,9 @@ _server_stop_event = None
 async def _run(stop_event: Optional[asyncio.Event] = None):
     global _server_instance, _server_stop_event
     _server_stop_event = stop_event
+
+    ws_blacklist.clear()
+    dc_fail_until.clear()
 
     secret_bytes = bytes.fromhex(proxy_config.secret)
 
