@@ -87,12 +87,21 @@ def refresh_cfproxy_domains() -> None:
     proxy_config.active_cfproxy_domain = random.choice(pool)
 
 
+_refresh_stop: threading.Event = threading.Event()
+
+
 def start_cfproxy_domain_refresh() -> None:
-    threading.Thread(
-        target=refresh_cfproxy_domains,
-        daemon=True,
-        name='cfproxy-domains-refresh',
-    ).start()
+    global _refresh_stop
+    _refresh_stop.set()
+    _refresh_stop = threading.Event()
+    stop = _refresh_stop
+
+    def _loop():
+        refresh_cfproxy_domains()
+        while not stop.wait(timeout=3600):
+            refresh_cfproxy_domains()
+
+    threading.Thread(target=_loop, daemon=True, name='cfproxy-domains-refresh').start()
 
 
 def parse_dc_ip_list(dc_ip_list: List[str]) -> Dict[int, str]:
